@@ -1,34 +1,28 @@
-# GitHub Actions Workflow to Build a Java Project with Maven and Docker
+# .github/workflows/build.yml
 
-name: CI/CD Tutorials
+name: CI/CD Pipeline
 
 on:
   push:
     paths:
-      - "kubernetes/**"
+      - "**"
     branches: [ "master" ]
   pull_request:
+    branches: [ "*" ]
     paths:
-      - "kubernetes/**"
-    types:
-      - opened
-      - synchronize
-      - reopened
+      - "**"
 
 jobs:
-  build-kubernetes-bookmark-api:
-    name: Build and Test Kubernetes Bookmark API
+  build-kubernetes:
+    name: Build and Test Kubernetes Project
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: ./kubernetes
-
     steps:
-      # Checkout the repository
-      - uses: actions/checkout@v4
+      # Step 1: Check out the code
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      # Set up JDK 17
+      # Step 2: Set up JDK 17 for the project
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -36,21 +30,21 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # Build the project with Maven
+      # Step 3: Build the project with Maven
       - name: Build with Maven
-        run: mvn -B package --file pom.xml
+        run: ./mvnw -B package --file pom.xml
 
-      # Conditionally build and push Docker image if on master branch
-      - name: Build and Publish Docker Image
+      # Step 4: Run tests (if any)
+      - name: Run Tests
+        run: ./mvnw test
+
+      # Step 5: Build and Publish Docker Image if on the 'master' branch
+      - name: Build and Push Docker Image
         if: ${{ github.ref == 'refs/heads/master' }}
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
           echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-          ./mvnw spring-boot:build-image -Dspring-boot.build-image.imageName=${DOCKER_USERNAME}/kubernetes-bookmark-api
+          docker build -t ${DOCKER_USERNAME}/kubernetes-bookmark-api .
           docker push ${DOCKER_USERNAME}/kubernetes-bookmark-api
-
-      # (Optional) Update the Maven dependency graph for Dependabot
-      - name: Update dependency graph
-        uses: advanced-security/maven-dependency-submission-action@571e99aab1055c2e71a1e2309b9691de18d6b7d6
