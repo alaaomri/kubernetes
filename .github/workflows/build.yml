@@ -10,7 +10,16 @@ name: Java CI with Maven
 
 on:
   push:
-    branches: [ "**" ]
+    paths:
+      - "kubernetes/**"
+    branches: [ "master" ]
+  pull_request:
+    paths:
+      - "kubernetes/**"
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 jobs:
   build-kuberenetes-bookmark-api:
